@@ -11,10 +11,10 @@ from . import resources
 from .qt_utils.tools import warn
 from .qgis_utils.utils import create_action
 
-from .qProf_QWidget import qprof_QWidget
+from .qProf_QWidget import QProfQWidget
 
 _plugin_name_ = "qProf"
-_version_ = "0.4.4"
+_version_ = "0.5.1.1" # This is based on build 0.5.1 
 
 
 class qProf_main(object):
@@ -59,8 +59,8 @@ class qProf_main(object):
                                        self.interface.mainWindow())
         qprof_DockWidget.setAttribute(Qt.WA_DeleteOnClose)
         qprof_DockWidget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.qProf_QWidget = qprof_QWidget(self.plugin_name,
-                                           self.canvas)
+        self.qProf_QWidget = QProfQWidget(self.plugin_name,
+                                          self.canvas)
         qprof_DockWidget.setWidget(self.qProf_QWidget)
         qprof_DockWidget.destroyed.connect(self.qProf_QWidget.closeEvent)
         self.interface.addDockWidget(Qt.RightDockWidgetArea, qprof_DockWidget)

@@ -1,4 +1,6 @@
-from typing import Optional, Tuple
+
+from typing import Optional, Union, List
+
 import numbers
 
 from builtins import str
@@ -6,6 +8,7 @@ from builtins import object
 from math import isnan, sin, cos, asin, radians, degrees, floor, ceil, sqrt
 
 import numpy as np
+
 
 try:
     from osgeo import ogr
@@ -123,7 +126,10 @@ def pt_geoms_attrs(pt_layer, field_list=None):
     return rec_list
 
 
-def line_geoms_attrs(line_layer, field_list=None):
+def line_geoms_attrs(
+    line_layer,
+    field_list=None
+):
 
     if field_list is None:
         field_list = []
@@ -153,7 +159,7 @@ def line_geoms_attrs(line_layer, field_list=None):
     return lines
 
 
-def line_geoms_with_infos(
+def line2d_geoms_with_infos(
     line_layer,
     label_field_ndx: Optional[numbers.Integral],
     order_field_ndx: Optional[numbers.Integral]
@@ -197,9 +203,20 @@ def polyline_to_xytuple_list(qgsline):
     return [(qgspoint.x(), qgspoint.y()) for qgspoint in qgsline]
 
 
+def polyline_to_xyztuple_list(qgsline):
+
+    assert len(qgsline) > 0
+    return [(qgspoint.x(), qgspoint.y(), qgspoint.z()) for qgspoint in qgsline]
+
+
 def multipolyline_to_xytuple_list2(qgspolyline):
 
     return [polyline_to_xytuple_list(qgsline) for qgsline in qgspolyline]
+
+
+def multipolyline_to_xyztuple_list2(qgspolyline):
+
+    return [polyline_to_xyztuple_list(qgsline) for qgsline in qgspolyline]
 
 
 def field_values(layer, curr_field_ndx):
@@ -281,9 +298,8 @@ def project_point(pt, srcCrs, destCrs):
 
     qgs_pt = QgsPointXY(pt.x, pt.y)
     proj_qgs_pt = project_qgs_point(qgs_pt, srcCrs, destCrs)
-    proj_x, proj_y = proj_qgs_pt.x(), proj_qgs_pt.y()
 
-    return Point(proj_x, proj_y)
+    return Point(proj_qgs_pt.x(), proj_qgs_pt.y(), pt.z)
 
 
 def project_xy_list(src_crs_xy_list, srcCrs, destCrs):

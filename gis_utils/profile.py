@@ -1,20 +1,40 @@
 
-from __future__ import division
+from typing import Union, Dict
+
+from collections import namedtuple
 
 from builtins import zip
 from builtins import map
 from builtins import range
-from builtins import object
+
 import copy
 import xml.dom.minidom
 
-from .features import Line, xytuple_l2_to_MultiLine
+from .features import *
 
 from .qgs_tools import *
 
-from .geodetic import TrackPointGPX
+from .geodetic import *
 
-from .errors import GPXIOException
+from .errors import *
+
+
+class SectionLines:
+
+    def __init__(self,
+        multilines2d: List[MultiLine],
+        ids: List[str],
+        plot_as_categorized: bool,
+        colors: Union[List, Dict],
+        plot_labels: bool
+    ):
+
+        self.multilines2d = multilines2d
+        self.ids = ids
+        self.plot_as_categorized = plot_as_categorized
+        self.colors = colors
+        self.plot_labels = plot_labels
+
 
 
 class GeoProfilesSet(object):
@@ -93,11 +113,13 @@ class GeoProfile:
         self.resampled_line = None
 
         self.topo_profiles = None  # instance of ProfileElevations
-        self.geoplane_attitudes = []
-        self.geosurfaces = []
-        self.geosurfaces_ids = []
-        self.lineaments = []
-        self.outcrops = []
+        self.projected_attitudes = []
+
+        # line traces projections (lines in 3D)
+        self.projected_lines = []
+
+        self.intersected_lineaments = []
+        self.intersected_outcrops = []
 
     def set_topo_profiles(self, topo_profiles):
 
@@ -105,11 +127,11 @@ class GeoProfile:
 
     def add_intersections_pts(self, intersection_list):
 
-        self.lineaments += intersection_list
+        self.intersected_lineaments += intersection_list
 
     def add_intersections_lines(self, formation_list, intersection_line3d_list, intersection_polygon_s_list2):
 
-        self.outcrops = list(zip(formation_list, intersection_line3d_list, intersection_polygon_s_list2))
+        self.intersected_outcrops = list(zip(formation_list, intersection_line3d_list, intersection_polygon_s_list2))
 
     def get_current_dem_names(self):
 
@@ -127,33 +149,33 @@ class GeoProfile:
     def min_z_plane_attitudes(self):
 
         # TODO:  manage case for possible nan p_z values
-        return min([plane_attitude.pt_3d.p_z for plane_attitude_set in self.geoplane_attitudes for plane_attitude in
+        return min([plane_attitude.pt_3d.p_z for plane_attitude_set in self.projected_attitudes for plane_attitude in
                     plane_attitude_set if 0.0 <= plane_attitude.sign_hor_dist <= self.max_s()])
 
     def max_z_plane_attitudes(self):
 
         # TODO:  manage case for possible nan p_z values
-        return max([plane_attitude.pt_3d.p_z for plane_attitude_set in self.geoplane_attitudes for plane_attitude in
+        return max([plane_attitude.pt_3d.p_z for plane_attitude_set in self.projected_attitudes for plane_attitude in
                     plane_attitude_set if 0.0 <= plane_attitude.sign_hor_dist <= self.max_s()])
 
     def min_z_curves(self):
 
-        return min([pt_2d.p_y for multiline_2d_list in self.geosurfaces for multiline_2d in multiline_2d_list for line_2d in
-                    multiline_2d.lines for pt_2d in line_2d.pts if 0.0 <= pt_2d.p_x <= self.max_s()])
+        return min([pt_2d.p_y for multiline_2d_list in self.projected_lines for multiline_2d in multiline_2d_list for line_2d in
+                    multiline_2d.projected_lines for pt_2d in line_2d.pts if 0.0 <= pt_2d.p_x <= self.max_s()])
 
     def max_z_curves(self):
 
-        return max([pt_2d.p_y for multiline_2d_list in self.geosurfaces for multiline_2d in multiline_2d_list for line_2d in
-                    multiline_2d.lines for pt_2d in line_2d.pts if 0.0 <= pt_2d.p_x <= self.max_s()])
+        return max([pt_2d.p_y for multiline_2d_list in self.projected_lines for multiline_2d in multiline_2d_list for line_2d in
+                    multiline_2d.projected_lines for pt_2d in line_2d.pts if 0.0 <= pt_2d.p_x <= self.max_s()])
 
     def min_z(self):
 
         min_z = self.min_z_topo()
 
-        if len(self.geoplane_attitudes) > 0:
+        if len(self.projected_attitudes) > 0:
             min_z = min([min_z, self.min_z_plane_attitudes()])
 
-        if len(self.geosurfaces) > 0:
+        if len(self.projected_lines) > 0:
             min_z = min([min_z, self.min_z_curves()])
 
         return min_z
@@ -162,37 +184,51 @@ class GeoProfile:
 
         max_z = self.max_z_topo()
 
-        if len(self.geoplane_attitudes) > 0:
+        if len(self.projected_attitudes) > 0:
             max_z = max([max_z, self.max_z_plane_attitudes()])
 
-        if len(self.geosurfaces) > 0:
+        if len(self.projected_lines) > 0:
             max_z = max([max_z, self.max_z_curves()])
 
         return max_z
 
     def add_plane_attitudes(self, plane_attitudes):
 
-        self.geoplane_attitudes.append(plane_attitudes)
+        self.projected_attitudes.append(plane_attitudes)
 
-    def add_curves(self, lMultilines, lIds):
+    def add_curves(self,
+       multi_lines: List,
+       ids: List,
+       plot_as_categorized: bool,
+       colors: Union[Dict, List],
+       plot_labels: bool
+    ):
 
-        self.geosurfaces.append(lMultilines)
-        self.geosurfaces_ids.append(lIds)
+        multiline_plot_set = SectionLines(
+            multi_lines,
+            ids,
+            plot_as_categorized,
+            colors,
+            plot_labels
+        )
+
+        self.projected_lines.append(multiline_plot_set)
 
 
 class ProfileElevations:
 
     def __init__(self):
 
-        #self.line_source = None
         self.dem_params = []
         self.gpx_params = None
 
         self.planar_xs = None
         self.planar_ys = None
+
         self.lons = None
         self.lats = None
         self.times = None
+
         self.profile_s = None
 
         self.surface_names = []
@@ -270,7 +306,7 @@ def topoprofiles_from_dems(
         selected_dems,
         selected_dem_parameters,
         invert_profile
-):
+) -> ProfileElevations:
     
     # get project CRS information
     on_the_fly_projection, project_crs = get_on_the_fly_projection(canvas)
@@ -314,7 +350,42 @@ def topoprofiles_from_dems(
     return topo_profiles
 
 
-def topoprofiles_from_gpxfile(source_gpx_path, invert_profile, gpx_source):
+def topoprofiles_from_line3d(
+    line3d,
+    invert_profile
+) -> Union[type(None), ProfileElevations]:
+
+    try:
+
+        topo_profiles = ProfileElevations()
+
+        topo_profiles.surface_names = ['Line 3D']
+
+        if invert_profile:
+            line3d = line3d.reverse_direction()
+
+        topo_profiles.planar_xs = line3d.x_list
+        topo_profiles.planar_ys = line3d.y_list
+        topo_profiles.profile_s = np.asarray(line3d.incremental_length_2d())
+        topo_profiles.profile_s3ds = [np.asarray(line3d.incremental_length_3d())]  # [] required for compatibility with DEM case
+        topo_profiles.profile_zs = [np.asarray(line3d.z_list)]  # [] required for compatibility with DEM case
+
+        topo_profiles.inverted = invert_profile
+
+        topo_profiles.profile_dirslopes = [np.asarray(line3d.slopes())]  # [] required for compatibility with DEM case
+
+        return topo_profiles
+
+    except Exception as e:
+
+        return None
+
+
+def topoprofiles_from_gpxfile(
+    source_gpx_path,
+    invert_profile,
+    gpx_source
+) -> ProfileElevations:
 
     doc = xml.dom.minidom.parse(source_gpx_path)
 
@@ -539,7 +610,11 @@ def profile_polygon_intersection(profile_qgsgeometry, polygon_layer, inters_poly
     return True, intersection_polyline_polygon_crs_list
 
 
-def extract_multiline2d_list(structural_line_layer, on_the_fly_projection, project_crs):
+def extract_multiline2d_list(
+        structural_line_layer,
+        on_the_fly_projection,
+        project_crs
+):
 
     line_orig_crs_geoms_attrs = line_geoms_attrs(structural_line_layer)
 
@@ -561,7 +636,14 @@ def extract_multiline2d_list(structural_line_layer, on_the_fly_projection, proje
     return line_proj_crs_MultiLine2D_list
 
 
-def define_plot_structural_segment(structural_attitude, profile_length, vertical_exaggeration, segment_scale_factor=70.0):
+def define_plot_structural_segment(
+    structural_attitude,
+    profile_length, #Is this length of the section?
+    vertical_exaggeration,
+    #TODO: UNDERSTAND LOGIC
+    segment_scale_factor=55.0 #where is this 55.0 coming from.
+                                # Makes symbols shorter
+):
 
     ve = float(vertical_exaggeration)
     intersection_point = structural_attitude.pt_3d
@@ -580,11 +662,17 @@ def define_plot_structural_segment(structural_attitude, profile_length, vertical
         structural_segment_s = [h_dist, h_dist]
         structural_segment_z = [z0 + height_corr, z0 - height_corr]
     else:
-        t_slope = s_slope / c_slope
+        #TODO: ?????
+        t_slope = s_slope / c_slope #sin/cos
+        #TODO: WHY THIS IS NOT A JUST A FIXED NUMBER
         width = length * c_slope
 
+        #TODO: WHAT IS THIS EVEN DOING
         length_exag = width * sqrt(1 + ve*ve * t_slope*t_slope)
 
+
+
+        #length*c_slope*length/length_exag
         corr_width = width * length / length_exag
         corr_height = corr_width * t_slope
 
@@ -596,6 +684,73 @@ def define_plot_structural_segment(structural_attitude, profile_length, vertical
 
     return structural_segment_s, structural_segment_z
 
+    """
+    #TODO: DELETE THIS FUNCTION
+    def define_plot_structural_segment_AIEXPLANATION(
+            structural_attitude,
+            profile_length,  # Length of the section to be plotted
+            vertical_exaggeration,  # Factor to exaggerate the vertical dimension for visualization
+            segment_scale_factor=55.0  # Scale factor to adjust the length of the segment for visualization
+    ):
+ 
+        Calculates the start and end points of a structural segment for plotting.
+
+        Parameters:
+        - structural_attitude: An object containing information about the structural attitude, such as the intersection point, slope, and direction.
+        - profile_length: The length of the section to be plotted.
+        - vertical_exaggeration: A factor to exaggerate the vertical dimension for visualization purposes.
+        - segment_scale_factor: A scale factor to adjust the length of the segment for visualization. Default is 55.0, which is likely chosen based on the desired visual representation.
+
+        Returns:
+        - structural_segment_s: A list of two values representing the start and end points of the segment along the horizontal axis.
+        - structural_segment_z: A list of two values representing the start and end points of the segment along the vertical axis.
+    
+
+
+    # Convert vertical exaggeration to float for calculations
+    ve = float(vertical_exaggeration)
+    # Extract the intersection point's z-coordinate
+    z0 = structural_attitude.pt_3d.z
+
+    # Extract horizontal distance, slope angle, and downward sense from the structural attitude
+    h_dist = structural_attitude.sign_hor_dist
+    slope_rad = structural_attitude.slope_rad
+    intersection_downward_sense = structural_attitude.dwnwrd_sense
+
+    # Calculate the length of the segment by dividing the profile length by the segment scale factor
+    length = profile_length / segment_scale_factor
+
+    # Calculate sine and cosine of the slope angle
+    s_slope = sin(float(slope_rad))
+    c_slope = cos(float(slope_rad))
+
+    # If the cosine of the slope angle is zero, the segment is horizontal
+    if c_slope == 0.0:
+        # Calculate the height correction based on the length and vertical exaggeration
+        height_corr = length / ve
+        # Define the segment's horizontal range
+        structural_segment_s = [h_dist, h_dist]
+        # Define the segment's vertical range
+        structural_segment_z = [z0 + height_corr, z0 - height_corr]
+    else:
+        # Calculate the tangent of the slope angle
+        t_slope = s_slope / c_slope
+        # Calculate the width of the segment based on the length and cosine of the slope angle
+        width = length * c_slope
+        # Calculate the exaggerated length of the segment
+        length_exag = width * sqrt(1 + ve * ve * t_slope * t_slope)
+        # Calculate the corrected width and height of the segment
+        corr_width = width * length / length_exag
+        corr_height = corr_width * t_slope
+        # Define the segment's horizontal range
+        structural_segment_s = [h_dist - corr_width, h_dist + corr_width]
+        # Define the segment's vertical range, adjusting based on the downward sense
+        structural_segment_z = [z0 + corr_height, z0 - corr_height]
+        if intersection_downward_sense == "left":
+            structural_segment_z = [z0 - corr_height, z0 + corr_height]
+
+    return structural_segment_s, structural_segment_z
+    """
 
 def calculate_projected_3d_pts(canvas, struct_pts, structural_pts_crs, demObj):
 

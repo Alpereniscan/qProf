@@ -266,15 +266,19 @@ it is then possible to perform on the same profile the projection of geological 
 
 <br />
 
-<h3>3.2 Projection of geological lines</h3>
+<h3>3.2 Projection of geological traces</h3>
 
 <div>
 	Geological traces can be projected on the section plane, based on a fold axis for which
 	trend and plunge values have to be defined.
+	The source layer may be 3D, in which case the internal height can be used ("<i>Derive elevation information from: layer</i>"
+	in Fig. 10). When the source layer is 2D, the elevation must be derived from the DEM (option in Fig. 10).
 </div>
 <br />
 <div>
-	The "<i>Line densify distance</i>" option describes the distance used to densify the lines to plot, when original points are separated by distances larger than the densify distance.
+	The "<i>Line densify distance</i>" option describes the distance used to densify the lines to plot,
+	when deriving their elevation from the DEM. It is not required or used when deriving the elevation
+	from 3D lines.
 </div>
 <div style="text-align:center;margin: 20px;font-size: 90%;font-style:italic;">
 	<img src="images/f09.png" style="align:middle; max_width: 80%"/>
@@ -282,7 +286,16 @@ it is then possible to perform on the same profile the projection of geological 
 </div>
 <br />
 <div>
-	The "<i>Id field</i>" is used to label the project lines in the resulting plot, as evident in Fig. 11.
+	The "<i>Id field</i>" is used to optionally label the project lines in the resulting plot, as evident in Fig. 11,
+	and also as the source for the graphical styles (i.e., colors) to be applied to the lines.
+	Line colors may be applied based on the categories as derived from the '<i>id</i>' field. Alternatively,
+	a single color may be applied to all lines. Defined styles can be saved and then reloaded in subsequent sessions
+	by using the "<i>save style</i>" and "<i>load style</i>" buttons (Fig. 10).
+</div>
+<div>
+	It is possible to project different line sources, even applying different styles. Each defined style is stored
+	with the projected lines and applied when plotting the data. To reset the processed lines, the "<i>reset traces</i>"
+	can be used (Fig. 10).
 </div>
 <div style="text-align:center;margin: 20px;font-size: 90%;font-style:italic;">
 	<img src="images/f10.png" style="align:middle; max_width: 80%"/>
@@ -293,7 +306,7 @@ it is then possible to perform on the same profile the projection of geological 
 <h2>4. Intersections of geological elements</h2>
 <div>
 	It is possible to determine the intersections of the profile (composed by just two points) with lines ("<i>Intersect line layer</i>") or with polygons ("<i>Intersect polygon layer</i>"), representing geological features.
-With the polygon intersection tool, the colors for the resulting intersection will be chosen in an ad.hoc window.
+With the polygon intersection tool, the colors for the resulting intersection will be chosen in an ad-hoc window.
 </div>
 <br />
 <div>
@@ -343,7 +356,7 @@ With the polygon intersection tool, the colors for the resulting intersection wi
 <div style="font-size: 85%; font-style: italic;">
 -----
 <br /><br />
-Doc version 2020-02-16, by Mauro Alberti - <a href="mailto:alberti.m65@gmail.com">alberti.m65@gmail.com</a>
+Doc version 2022-11-06, by Mauro Alberti - <a href="mailto:alberti.m65@gmail.com">alberti.m65@gmail.com</a>
 </div>
 
 <br /><br />

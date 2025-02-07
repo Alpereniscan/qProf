@@ -5,9 +5,9 @@ from builtins import range
 from builtins import object
 import numpy as np
 
-from .qgs_tools import project_point
+from .qgs_tools import *
 
-from ..gsf.geometry import Vect, Point
+from ..gsf.geometry import *
 
 MIN_2D_SEPARATION_THRESHOLD = 1e-10
 MINIMUM_SEPARATION_THRESHOLD = 1e-10
@@ -598,7 +598,9 @@ class ParamLine3D(object):
         self._m = m
         self._n = n
 
-    def intersect_cartes_plane(self, cartes_plane):
+    def intersect_cartes_plane(self,
+        cartes_plane
+    ) -> Union[None, Point]:
         """
         Return intersection point between parametric line and Cartesian plane
         """
@@ -676,7 +678,32 @@ def merge_line(line):
     return MultiLine([path_line]).to_line().remove_coincident_points()
 
 
-def merge_lines(lines, progress_ids):
+def merge_lines(lines):
+    """
+    lines: a list of list of (x,y,z) tuples for multilines
+    """
+
+    line_list = []
+
+    for line in lines:
+
+        line_type, line_geometry = line
+
+        if line_type == 'multiline':
+            path_line = xytuple_l2_to_MultiLine(line_geometry).to_line()
+        elif line_type == 'line':
+            path_line = xytuple_list_to_Line(line_geometry)
+        else:
+            continue
+        line_list.append(path_line)  # now a list of Lines
+
+    # now the list of Lines is transformed into a single Line
+    merged_line = MultiLine(line_list).to_line().remove_coincident_points()
+
+    return merged_line
+
+
+def merge_lines_with_order(lines, progress_ids):
     """
     lines: a list of list of (x,y,z) tuples for multilines
     """

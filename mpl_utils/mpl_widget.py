@@ -90,11 +90,65 @@ class MplWidget(QWidget):
         self.show()
 
 
-def plot_line(axes, x_list, y_list, linecolor, name="", linewidth=1):
+def plot_along_main_line(
+    axes,
+    x_list,
+    y_list,
+    linecolor,
+    name="",
+    linewidth=1,
+    label_z = 0.5
+):
 
-    line, = axes.plot(x_list, y_list, '-', color=linecolor, linewidth=linewidth)
+    line, = axes.plot(
+        x_list,
+        y_list,
+        '-',
+        color=linecolor,
+        linewidth=linewidth
+    )
 
     if name is not None and name != "":
+        """
+        axes.annotate(name, xy=(x_list[0], y_list[0]), xycoords='data',
+                      xytext=(-40, 25), textcoords='offset points',
+                      size=8,
+                      arrowprops=dict(arrowstyle="fancy",
+                                      fc="0.6", ec="none",
+                                      patchB=line,
+                                      connectionstyle="angle3,angleA=0,angleB=-90"))
+        """
+
+        s_start = x_list[0]
+        s_end = x_list[1] if len(x_list) > 1 else None
+        s_mid = s_start if s_end is None else (s_start + s_end) / 2
+
+        axes.annotate(
+            f"{name}",
+            (s_mid, label_z),
+            color=linecolor
+        )
+
+
+def plot_line(
+    axes,
+    x_list,
+    y_list,
+    linecolor,
+    name="",
+    linewidth=1,
+):
+
+    line, = axes.plot(
+        x_list,
+        y_list,
+        '-',
+        color=linecolor,
+        linewidth=linewidth
+    )
+
+    if name is not None and name != "":
+
         axes.annotate(name, xy=(x_list[0], y_list[0]), xycoords='data',
                       xytext=(-40, 25), textcoords='offset points',
                       size=8,
@@ -104,13 +158,22 @@ def plot_line(axes, x_list, y_list, linecolor, name="", linewidth=1):
                                       connectionstyle="angle3,angleA=0,angleB=-90"))
 
 
-def plot_filled_line(axes, x_list, y_list, plot_y_min, facecolor, alpha=0.1):
+def plot_filled_line(
+    axes,
+    x_list,
+    y_list,
+    plot_y_min,
+    facecolor,
+    alpha=0.1
+):
 
     y_values_array = np.array(y_list)
     x_values_array = np.array(x_list)
     for val_int in valid_intervals(y_values_array):
-        axes.fill_between(x_values_array[val_int['start']: val_int['end'] + 1],
-                          plot_y_min,
-                          y_values_array[val_int['start']: val_int['end'] + 1],
-                          facecolor=facecolor,
-                          alpha=alpha)
+        axes.fill_between(
+            x_values_array[val_int['start']: val_int['end'] + 1],
+            plot_y_min,
+            y_values_array[val_int['start']: val_int['end'] + 1],
+            facecolor=facecolor,
+            alpha=alpha
+        )
