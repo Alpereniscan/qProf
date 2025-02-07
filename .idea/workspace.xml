@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2389892b-7f3f-46c3-8dab-59f7a812e326" name="Changes" comment="small changes for personal usage">
-      <change beforePath="$PROJECT_DIR$/qProf_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/qProf_main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/qProf.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/qProf.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,7 +74,23 @@
       <option name="project" value="LOCAL" />
       <updated>1738933186384</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="small changes for personal usage">
+      <option name="closed" value="true" />
+      <created>1738937765621</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1738937765621</updated>
+    </task>
+    <task id="LOCAL-00003" summary="small changes for personal usage">
+      <option name="closed" value="true" />
+      <created>1738937887164</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1738937887164</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
