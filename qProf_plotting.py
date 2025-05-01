@@ -7,7 +7,7 @@ import random
 import numpy as np
 
 from matplotlib import gridspec
-
+from qgis.core import QgsRaster, QgsRasterLayer, QgsPointXY, QgsRasterDataProvider
 from.gis_utils.qgs_tools import *
 from .gis_utils.profile import *
 from .mpl_utils.mpl_widget import *
@@ -33,6 +33,11 @@ lines_colors = [
     "chartreuse"
 ]
 
+def get_dem_elevation(dem_layer: QgsRasterLayer, point: QgsPointXY) -> float:
+    ident = dem_layer.dataProvider().identify(point, QgsRaster.IdentifyFormatValue)
+    if ident.isValid():
+        return ident.results().get(1, 0)  # Band 1 is usually elevation
+    return 0  # fallback if not valid
 
 def plot_structural_attitude(
     plot_addit_params,

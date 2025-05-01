@@ -101,13 +101,14 @@ def map_measure_to_section(structural_rec, section_data, map_axis=None):
                          intersection_downward_sense,
                          signed_distance_from_section_start)
 
-
+#original code
+"""
 def map_struct_pts_on_section(structural_data, section_data, mapping_method):
-    """
-    defines:
-        - 2D x-y location in section
-        - plane-plane segment intersection
-    """
+    
+    #defines:
+    #    - 2D x-y location in section
+    #    - plane-plane segment intersection
+    
 
     if mapping_method['method'] == 'nearest':
         return [map_measure_to_section(structural_rec, section_data) for structural_rec in structural_data]
@@ -126,6 +127,51 @@ def map_struct_pts_on_section(structural_data, section_data, mapping_method):
             except:
                 continue
         return result
+"""
+
+
+def map_struct_pts_on_section(structural_data, section_data, mapping_method, keep_original_elevation):
+    # defines:
+    #    - 2D x-y location in section
+    #    - plane-plane segment intersection
+
+    if mapping_method['method'] == 'nearest':
+        results = [map_measure_to_section(structural_rec, section_data) for structural_rec in structural_data]
+    elif mapping_method['method'] == 'common axis':
+        map_axis = GAxis(mapping_method['trend'], mapping_method['plunge'])
+        results = [map_measure_to_section(structural_rec, section_data, map_axis) for structural_rec in structural_data]
+    elif mapping_method['method'] == 'individual axes':
+        assert len(mapping_method['individual_axes_values']) == len(structural_data)
+        results = []
+        for structural_rec, (trend, plunge) in zip(structural_data, mapping_method['individual_axes_values']):
+            try:
+                map_axis = GAxis(trend, plunge)
+                results.append(map_measure_to_section(structural_rec, section_data, map_axis))
+            except:
+                continue
+    else:
+        return []
+
+    if keep_original_elevation:
+        for res in results:
+            # Overwrite the z value of the intersection point with the original elevation
+            res.pt_3d = Point(
+                res.pt_3d.x,
+                res.pt_3d.y,
+                res.src_pt_3d.z
+            )
+    """
+        for i, (structural_rec, res) in enumerate(zip(structural_data, results)):
+            # Overwrite the z value of the intersection point with the original elevation
+            res.pt_3d = Point(
+                res.pt_3d.x,
+                res.pt_3d.y,
+                res.s.z
+            )
+        return results
+    """
+
+    return results
 
 
 class IntersectionParameters(object):

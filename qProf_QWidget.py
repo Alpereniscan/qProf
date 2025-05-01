@@ -511,10 +511,13 @@ class QProfQWidget(QWidget):
 
         geology_toolbox = QToolBox()
 
+
         ### Point project toolbox
 
         xs_point_proj_QWidget = QWidget()
         qlytXsPointProj = QVBoxLayout()
+
+
 
         ## input section
 
@@ -604,7 +607,14 @@ class QProfQWidget(QWidget):
         xs_plot_proj_QGroupBox = QGroupBox(xs_point_proj_QWidget)
         xs_plot_proj_QGroupBox.setTitle('Plot geological attitudes')
 
+
+
         xs_plot_proj_Layout = QGridLayout()
+
+        # python
+        self.keep_original_elevation_checkbox = QCheckBox("Keep original elevation for projected points")
+        self.keep_original_elevation_checkbox.setChecked(True)  # Default enabled
+        xs_plot_proj_Layout.addWidget(self.keep_original_elevation_checkbox, 2, 5, 1, 2)
 
         xs_plot_proj_Layout.addWidget(QLabel("Labels"), 0, 0, 1, 1)
 
@@ -2100,8 +2110,7 @@ class QProfQWidget(QWidget):
                  "No available line layers")
             return
 
-        dialog = SourceLine2DLayerDialog(self.plugin_name,
-                                         current_line_layers)
+        dialog = SourceLine2DLayerDialog(self.plugin_name, current_line_layers)
 
         if dialog.exec_():
             line_layer, multiple_profiles, label_field_ndx, order_field_ndx = line2d_layer_params(dialog)
@@ -2909,6 +2918,7 @@ class QProfQWidget(QWidget):
             )
             return
 
+
         # get graphic style for projected attitudes
 
         marker_symbol = marker_mapping[self.proj_point_marker_symbol_QComboBox.currentText()]
@@ -2949,6 +2959,9 @@ class QProfQWidget(QWidget):
             return
 
         geoprofile = self.input_geoprofiles.geoprofile(0)
+
+
+
         struct_pts_3d = calculate_projected_3d_pts(self.canvas,
                                                    struct_pts_in_orig_crs,
                                                    structural_layer_crs,
@@ -2957,6 +2970,8 @@ class QProfQWidget(QWidget):
         # - zip together the point value data sets                     
         assert len(struct_pts_3d) == len(structural_planes)
         structural_data = list(zip(struct_pts_3d, structural_planes, struct_pts_ids))
+
+
 
         ### map points onto section ###
 
@@ -2967,13 +2982,20 @@ class QProfQWidget(QWidget):
 
         # get chosen mapping method
         mapping_method = self.struct_prjct_get_mapping_method()
+        # python
+        keep_original_elevation = self.keep_original_elevation_checkbox.isChecked()
+        geoprofile.add_plane_attitudes(
+            map_struct_pts_on_section(structural_data, self.section_data, mapping_method, self.keep_original_elevation_checkbox.isChecked())
+        )
+
+
         if mapping_method['method'] == 'individual axes':
             trend_field_name, plunge_field_name = mapping_method['trend field'], mapping_method['plunge field']
             # retrieve structural points mapping axes        
             mapping_method['individual_axes_values'] = vect_attrs(structural_layer,
                                                                   [trend_field_name, plunge_field_name])
 
-        geoprofile.add_plane_attitudes(map_struct_pts_on_section(structural_data, self.section_data, mapping_method))
+        geoprofile.add_plane_attitudes(map_struct_pts_on_section(structural_data, self.section_data, mapping_method, self.keep_original_elevation_checkbox.isChecked()))
         self.plane_attitudes_styles.append((marker_symbol, marker_size, color, line_width, transparency))
 
         # plot profiles
@@ -3836,30 +3858,59 @@ class SourceLine2DLayerDialog(QDialog):
 
         layout = QGridLayout()
 
+        # Row 0: Input line layer
         layout.addWidget(QLabel(self.tr("Input line layer:")), 0, 0, 1, 1)
         self.LineLayers_comboBox = QComboBox()
         layout.addWidget(self.LineLayers_comboBox, 0, 1, 1, 3)
         self.refresh_input_profile_layer_combobox()
 
-        self.qrbtLineIsMultiProfile = QCheckBox(self.tr("Layer with multiple profiles:"))
-        layout.addWidget(self.qrbtLineIsMultiProfile, 1, 0, 1, 2)
+        # New Row 1: Attribute column selection
+        layout.addWidget(QLabel(self.tr("Attribute Column:")), 1, 0, 1, 1)
+        self.attribute_comboBox = QComboBox()
+        layout.addWidget(self.attribute_comboBox, 1, 1, 1, 3)
 
-        layout.addWidget(QLabel(self.tr("label field:")), 1, 2, 1, 1)
+        # New Row 2: Feature selection
+        layout.addWidget(QLabel(self.tr("Feature Selection:")), 2, 0, 1, 1)
+        self.feature_selection_comboBox = QComboBox()
+        layout.addWidget(self.feature_selection_comboBox, 2, 1, 1, 3)
+
+        # Adjusted subsequent rows (original rows 1 & 2 shifted to 3 & 4)
+        self.qrbtLineIsMultiProfile = QCheckBox(self.tr("Layer with multiple profiles:"))
+        layout.addWidget(self.qrbtLineIsMultiProfile, 3, 0, 1, 2)
+
+
+        # multi profile part
+        layout.addWidget(QLabel(self.tr("label field:")), 3, 2, 1, 1)
         self.Trace2D_label_field_comboBox = QComboBox()
-        layout.addWidget(self.Trace2D_label_field_comboBox, 1, 3, 1, 1)
+        layout.addWidget(self.Trace2D_label_field_comboBox, 3, 3, 1, 1)
 
         self.refresh_label_field_combobox()
         self.LineLayers_comboBox.currentIndexChanged.connect(self.refresh_label_field_combobox)
 
-        layout.addWidget(QLabel(self.tr("Line order field:")), 2, 0, 1, 1)
+        layout.addWidget(QLabel(self.tr("Line order field:")), 5, 0, 1, 1)
 
         self.Trace2D_order_field_comboBox = QComboBox()
-        layout.addWidget(self.Trace2D_order_field_comboBox, 2, 1, 1, 3)
+        layout.addWidget(self.Trace2D_order_field_comboBox, 5, 1, 1, 3)
 
+        #connect buttons to functions and initialize
+
+        #layer selection button
         self.refresh_order_field_combobox()
-
         self.LineLayers_comboBox.currentIndexChanged.connect(self.refresh_order_field_combobox)
 
+        #Attribute selection button
+        self.refresh_attribute_selection_combobox()
+        self.LineLayers_comboBox.currentIndexChanged.connect(self.refresh_attribute_selection_combobox)
+        self.attribute_comboBox.currentIndexChanged.connect(self.refresh_feature_selection_combobox)
+
+
+
+        #Feature selection button
+        self.refresh_feature_selection_combobox()
+        self.LineLayers_comboBox.currentIndexChanged.connect(self.refresh_feature_selection_combobox)
+
+
+        #exit buttons
         okButton = QPushButton("&OK")
         cancelButton = QPushButton("Cancel")
 
@@ -3868,7 +3919,7 @@ class SourceLine2DLayerDialog(QDialog):
         buttonLayout.addWidget(okButton)
         buttonLayout.addWidget(cancelButton)
 
-        layout.addLayout(buttonLayout, 3, 0, 1, 3)
+        layout.addLayout(buttonLayout, 6, 0, 1, 3)
 
         self.setLayout(layout)
 
@@ -3876,6 +3927,51 @@ class SourceLine2DLayerDialog(QDialog):
         cancelButton.clicked.connect(self.reject)
 
         self.setWindowTitle("Define source line layer")
+
+    #new functions
+
+    def refresh_attribute_selection_combobox(self):
+
+        self.attribute_comboBox.clear()
+        self.attribute_comboBox.addItem('--select naming column--')
+
+        shape_qgis_ndx = self.LineLayers_comboBox.currentIndex()
+        self.line_shape = self.current_line_layers[shape_qgis_ndx]
+
+        line_layer_field_list = self.line_shape.dataProvider().fields().toList()
+        for field in line_layer_field_list:
+            self.attribute_comboBox.addItem(field.name())
+
+        self.refresh_feature_selection_combobox()
+
+    def refresh_feature_selection_combobox(self):
+        self.feature_selection_comboBox.clear()
+        self.feature_selection_comboBox.addItem('--select feature--')
+
+        shape_qgis_ndx = self.LineLayers_comboBox.currentIndex()
+        self.line_shape = self.current_line_layers[shape_qgis_ndx]
+
+        # Ensure the layer is valid
+        if not self.line_shape.isValid():
+            return
+
+        # Get the selected attribute
+        selected_attribute = self.attribute_comboBox.currentText()
+
+        if selected_attribute != '--select naming column--':
+            # Get features from the layer
+
+            #TODO: line has changed, both new rows should return to initial state before reaching here otherwise they pop an error
+            try:#
+                features = self.line_shape.getFeatures()
+
+                # Add feature values to the combo box
+                for feature in features:
+                    attribute_value = feature[selected_attribute]
+                    self.feature_selection_comboBox.addItem(str(attribute_value))
+            except Exception as e:
+                print(e)
+
 
     def refresh_input_profile_layer_combobox(self):
 
